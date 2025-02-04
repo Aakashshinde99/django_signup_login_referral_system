@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Referral List</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <!-- Stylesheet -->
+    <style media="screen">
+        *,
+        *:before,
+        *:after {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #f5f7fa;
+            font-family: 'Poppins', sans-serif;
+            color: #333;
+        }
+        .container {
+            width: 80%;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #2d2d2d;
+        }
+        .referral-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .referral-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 16px;
+            line-height: 1.6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .referral-item:last-child {
+            border-bottom: none;
+        }
+        .referral-name {
+            font-weight: 600;
+            color: #2d2d2d;
+        }
+        .referral-email {
+            color: #777;
+        }
+        .referral-date {
+            font-size: 14px;
+            color: #aaa;
+        }
+        .no-referrals {
+            text-align: center;
+            font-size: 16px;
+            color: #888;
+            padding: 20px;
+        }
+        .button-link {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 15px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            text-align: center;
+        }
+        .button-link:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>Referrals for {{ user.name }}</h2>
+        </div>
+        
+        <div class="content">
+            {% if referees %}
+                <ul class="referral-list">
+                    {% for referee in referees %}
+                        <li class="referral-item">
+                            <div>
+                                <span class="referral-name">{{ referee.name }}</span> 
+                                <span class="referral-email">- {{ referee.email }}</span>
+                            </div>
+                            <span class="referral-date">Registered on {{ referee.date_joined }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="no-referrals">No referrals yet. Start referring and earn rewards!</p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <a href="{% url 'home' %}" class="button-link">Back to Home</a>
+        </div>
+    </div>
+
+</body>
+</html>
