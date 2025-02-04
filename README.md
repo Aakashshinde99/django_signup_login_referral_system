@@ -60,7 +60,6 @@ cd django-referral-system
 ### 🔹 Step 2: Create and Activate Virtual Environment
 ```bash
 python -m venv env
-source env/bin/activate   # On macOS/Linux
 env\Scripts\activate      # On Windows
 ```
 
