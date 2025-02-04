@@ -12,7 +12,6 @@ A simple Django-based referral system that allows users to sign up, log in, and 
 - ✅ **Referee Tracking** (View who signed up using a referral code)
 - ✅ **Admin Panel Access** for user management
 - ✅ **Database Management** with SQLite
-- ✅ **Deployable on AWS**
 
 ---
 
@@ -23,7 +22,6 @@ A simple Django-based referral system that allows users to sign up, log in, and 
 | Django      | Python web framework for rapid development |
 | SQLite      | Lightweight database for local development |
 | HTML, CSS   | Frontend templates for signup, login & home |
-| AWS        | Deployment on AWS EC2 with Nginx & Gunicorn |
 
 ---
 
