@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Welcome - Home</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <style media="screen">
+        *,
+        *:before,
+        *:after {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(120deg, #2980b9, #8e44ad);
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 400px;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .content p {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .content strong {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .button-container {
+            margin-top: 20px;
+        }
+
+        .button-link {
+            display: block;
+            padding: 10px;
+            background: #2980b9;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .button-link.logout {
+            background: #e74c3c;
+        }
+
+        .button-link:hover {
+            background: #1f6692;
+        }
+
+        .button-link.logout:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Welcome, {{ user.name }}!</h2>
+        </div>
+        <div class="content">
+            <p>Your Referral Code: <strong>{{ user.referral_code }}</strong></p>
+            <p>To view your referrals and track your progress, click the link below:</p>
+            
+            <div class="button-container">
+                <a href="{% url 'referral' %}?user_id={{ user.id }}" class="button-link">View Referrals</a>
+                <a href="{% url 'login' %}" class="button-link logout">Logout</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

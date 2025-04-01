@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Referrals | Your App</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .referral-container {
+            width: 90%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            margin-bottom: 20px;
+            color: white;
+            font-size: 2.5rem;
+            text-align: center;
+        }
+
+        h2 {
+            color: white;
+            margin-bottom: 30px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .referral-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 10px;
+            min-width: 150px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .referral-list {
+            margin-top: 30px;
+        }
+
+        .referral-header {
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr;
+            padding: 15px 0;
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            font-weight: 500;
+        }
+
+        .referral-item {
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr;
+            padding: 15px 0;
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+        }
+
+        .referral-item:last-child {
+            border-bottom: none;
+        }
+
+        .referral-name {
+            font-weight: 500;
+        }
+
+        .referral-email {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .referral-date {
+            font-size: 13px;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+        .no-referrals {
+            text-align: center;
+            color: white;
+            padding: 40px 0;
+            opacity: 0.7;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .button-link {
+            padding: 12px 30px;
+            background: white;
+            color: #6e8efb;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .button-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+
+            .referral-header,
+            .referral-item {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .referral-date {
+                display: none;
+            }
+
+            .referral-stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .stat-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="referral-container">
+        <div class="logo">
+            <i class="fas fa-users"></i>
+        </div>
+        <h2>Your Referrals</h2>
+
+        <div class="referral-stats">
+            <div class="stat-box">
+                <div class="stat-value">{{ referees.count }}</div>
+                <div class="stat-label">Total Referrals</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ user.referral_code }}</div>
+                <div class="stat-label">Your Code</div>
+            </div>
+        </div>
+
+        <div class="referral-list">
+            {% if referees %}
+            <div class="referral-header">
+                <div>Name</div>
+                <div>Email</div>
+                <div>Date Joined</div>
+            </div>
+
+            {% for referee in referees %}
+            <div class="referral-item">
+                <div class="referral-name">{{ referee.name }}</div>
+                <div class="referral-email">{{ referee.email }}</div>
+                <div class="referral-date">{{ referee.date_joined|date:"M d, Y" }}</div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="no-referrals">
+                <p>No referrals yet. Share your code and invite friends!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="button-container">
+            <a href="{% url 'home' %}" class="button-link">Back to Home</a>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,982 @@
+settings.py-
+
+from pathlib import Path
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-t8d+tnt21riy)oh_86v=ju0@9wl7@8(+(*fiufy-zfb*-ya=y6'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+ALLOWED_HOSTS = []
+
+
+# Application definition
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'users',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'referral_system.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'users/templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'referral_system.wsgi.application'
+
+
+# Database
+# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+
+# Password validation
+# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+
+# Internationalization
+# https://docs.djangoproject.com/en/5.1/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'Asia/Kolkata'
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
+
+STATIC_URL = 'static/'
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+models.py-
+from django.db import models
+import uuid
+from django.utils import timezone
+
+class User(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField(unique=True)
+    mobile_number = models.CharField(max_length=15)
+    city = models.CharField(max_length=100)
+    password = models.CharField(max_length=255)
+    referral_code = models.CharField(max_length=10, unique=True, default=str(uuid.uuid4())[:8])
+    referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='referrals')
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.name
+
+
+project urls.py-
+
+from django.contrib import admin
+from django.urls import path, include
+from django.shortcuts import redirect
+
+def redirect_to_login(request):
+    return redirect('login')
+
+urlpatterns = [
+    path('', redirect_to_login),
+    path('admin/', admin.site.urls),
+    path('users/', include('users.urls')),
+]
+
+app urls.py-
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('signup/', views.signup, name='signup'),
+    path('login/', views.login, name='login'),
+    path('home/', views.home, name='home'),
+    path('referral/', views.referral, name='referral'),
+]
+
+
+views.py-
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from .models import User
+import random
+import string
+from django.shortcuts import render, get_object_or_404
+
+def generate_referral_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+def signup(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        name = request.POST.get('name')
+        mobile_number = request.POST.get('mobile_number')
+        city = request.POST.get('city')
+        referral_code = request.POST.get('referral_code', None)
+        password = request.POST.get('password')
+
+        if not email or not name or not mobile_number or not city or not password:
+            return JsonResponse({'error': 'All fields except referral_code are required'}, status=400)
+
+        referrer = None
+        if referral_code:
+            try:
+                referrer = User.objects.get(referral_code=referral_code)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'Invalid referral code'}, status=400)
+
+        user = User(
+            email=email,
+            name=name,
+            mobile_number=mobile_number,
+            city=city,
+            password=password,  
+            referral_code=generate_referral_code(),
+            referred_by=referrer
+        )
+        user.save()
+
+        return redirect('login')
+
+    return render(request, 'users/signup.html')
+          
+
+def login(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        try:
+            user = User.objects.get(email=email)
+            if user.password == password:
+                request.session['user_id'] = user.id
+                return redirect('home')
+            else:
+                return JsonResponse({'error': 'Invalid password'}, status=400)
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=400)
+
+    return render(request, 'users/login.html')
+
+
+def home(request):
+    user_id = request.session.get('user_id')
+
+    if not user_id:
+        return redirect('login')
+
+    user = User.objects.get(id=user_id)
+    return render(request, 'users/home.html', {'user': user})
+
+def referral(request):
+    user_id = request.GET.get('user_id')
+    user = get_object_or_404(User, id=user_id)    
+    referees = User.objects.filter(referred_by=user)    
+    return render(request, 'users/referral.html', {'user': user, 'referees': referees})
+
+
+templates
+
+users\templates\users\signup.html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Signup Page</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <style media="screen">
+        *,
+        *:before,
+        *:after {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #080710;
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .form-container {
+            width: 90%;
+            max-width: 900px;
+            background-color: rgba(255, 255, 255, 0.13);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
+            overflow: hidden;
+            display: flex;
+        }
+
+        .form-image {
+            flex: 1;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .form-image img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        form {
+            flex: 1;
+            padding: 50px 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        form h3 {
+            grid-column: 1 / -1;
+            font-size: 28px;
+            font-weight: 500;
+            text-align: center;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        input {
+            height: 45px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.07);
+            border-radius: 5px;
+            padding: 0 15px;
+            font-size: 14px;
+            font-weight: 300;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #6e8efb;
+            box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.2);
+        }
+
+        ::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        button {
+            grid-column: 1 / -1;
+            height: 50px;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 15px 0;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-link {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .login-link a {
+            color: #6e8efb;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .login-link a:hover {
+            color: #a777e3;
+            text-decoration: underline;
+        }
+
+        .optional-text {
+            font-size: 0.8em;
+            opacity: 0.7;
+            vertical-align: middle;
+        }
+
+        @media (max-width: 768px) {
+            .form-container {
+                flex-direction: column;
+            }
+
+            form {
+                grid-template-columns: 1fr;
+            }
+
+            .form-image {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="form-container">
+        <div class="form-image">
+            <!-- You can add an image here -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user-plus"
+                style="width: 200px; height: 200px; color: white;">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+        </div>
+
+        <form action="" method="post">
+            {% csrf_token %}
+            <h3>Create Your Account</h3>
+
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" placeholder="Enter your full name" name="name" id="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" placeholder="Enter your email" name="email" id="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="mobile_number">Mobile Number</label>
+                <input type="text" placeholder="Enter mobile number" name="mobile_number" id="mobile_number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" placeholder="Enter your city" name="city" id="city" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" placeholder="Create password" name="password" id="password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="referral_code">
+                    Referral Code <span class="optional-text">(Optional)</span>
+                </label>
+                <input type="text" placeholder="Enter referral code" name="referral_code" id="referral_code">
+            </div>
+
+            <button type="submit">Register Now</button>
+
+            <p class="login-link">Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+        </form>
+    </div>
+</body>
+
+</html>
+
+
+users\templates\users\login.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Login Page</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <style media="screen">
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #080710;
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .form-container {
+            width: 90%;
+            max-width: 900px;
+            background-color: rgba(255, 255, 255, 0.13);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
+            overflow: hidden;
+            display: flex;
+        }
+
+        .form-image {
+            flex: 1;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .form-image img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        form {
+            flex: 1;
+            padding: 50px 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        form h3 {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 500;
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        label {
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        input {
+            height: 45px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.07);
+            border-radius: 5px;
+            padding: 0 15px;
+            font-size: 14px;
+            font-weight: 300;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #6e8efb;
+            box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.2);
+        }
+
+        ::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        button {
+            height: 50px;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 15px 0;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .signup-link {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .signup-link a {
+            color: #6e8efb;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .signup-link a:hover {
+            color: #a777e3;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .form-container {
+                flex-direction: column;
+            }
+
+            .form-image {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="form-image">
+            <!-- You can add an image here -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-log-in"
+                style="width: 200px; height: 200px; color: white;">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                <polyline points="10 17 15 12 10 7"></polyline>
+                <line x1="15" y1="12" x2="3" y2="12"></line>
+            </svg>
+        </div>
+
+        <form action="" method="post">
+            {% csrf_token %}
+            <h3>Login to Your Account</h3>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" placeholder="Enter your email" name="email" id="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" placeholder="Enter your password" name="password" id="password" required>
+            </div>
+
+            <button type="submit">Login</button>
+
+            <p class="signup-link">Don't have an account? <a href="{% url 'signup' %}">Sign up here</a></p>
+        </form>
+    </div>
+</body>
+</html>
+
+
+
+users\templates\users\home.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Welcome - Home</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <style media="screen">
+        *,
+        *:before,
+        *:after {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(120deg, #2980b9, #8e44ad);
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 400px;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .content p {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .content strong {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .button-container {
+            margin-top: 20px;
+        }
+
+        .button-link {
+            display: block;
+            padding: 10px;
+            background: #2980b9;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .button-link.logout {
+            background: #e74c3c;
+        }
+
+        .button-link:hover {
+            background: #1f6692;
+        }
+
+        .button-link.logout:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Welcome, {{ user.name }}!</h2>
+        </div>
+        <div class="content">
+            <p>Your Referral Code: <strong>{{ user.referral_code }}</strong></p>
+            <p>To view your referrals and track your progress, click the link below:</p>
+            
+            <div class="button-container">
+                <a href="{% url 'referral' %}?user_id={{ user.id }}" class="button-link">View Referrals</a>
+                <a href="{% url 'login' %}" class="button-link logout">Logout</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+
+users\templates\users\referral.html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Referrals | Your App</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .referral-container {
+            width: 90%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            margin-bottom: 20px;
+            color: white;
+            font-size: 2.5rem;
+            text-align: center;
+        }
+
+        h2 {
+            color: white;
+            margin-bottom: 30px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .referral-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 10px;
+            min-width: 150px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .referral-list {
+            margin-top: 30px;
+        }
+
+        .referral-header {
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr;
+            padding: 15px 0;
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            font-weight: 500;
+        }
+
+        .referral-item {
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr;
+            padding: 15px 0;
+            color: white;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+        }
+
+        .referral-item:last-child {
+            border-bottom: none;
+        }
+
+        .referral-name {
+            font-weight: 500;
+        }
+
+        .referral-email {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .referral-date {
+            font-size: 13px;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+        .no-referrals {
+            text-align: center;
+            color: white;
+            padding: 40px 0;
+            opacity: 0.7;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .button-link {
+            padding: 12px 30px;
+            background: white;
+            color: #6e8efb;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .button-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+
+            .referral-header,
+            .referral-item {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .referral-date {
+                display: none;
+            }
+
+            .referral-stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .stat-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="referral-container">
+        <div class="logo">
+            <i class="fas fa-users"></i>
+        </div>
+        <h2>Your Referrals</h2>
+
+        <div class="referral-stats">
+            <div class="stat-box">
+                <div class="stat-value">{{ referees.count }}</div>
+                <div class="stat-label">Total Referrals</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ user.referral_code }}</div>
+                <div class="stat-label">Your Code</div>
+            </div>
+        </div>
+
+        <div class="referral-list">
+            {% if referees %}
+            <div class="referral-header">
+                <div>Name</div>
+                <div>Email</div>
+                <div>Date Joined</div>
+            </div>
+
+            {% for referee in referees %}
+            <div class="referral-item">
+                <div class="referral-name">{{ referee.name }}</div>
+                <div class="referral-email">{{ referee.email }}</div>
+                <div class="referral-date">{{ referee.date_joined|date:"M d, Y" }}</div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="no-referrals">
+                <p>No referrals yet. Share your code and invite friends!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="button-container">
+            <a href="{% url 'home' %}" class="button-link">Back to Home</a>
+        </div>
+    </div>
+</body>
+
+</html>
